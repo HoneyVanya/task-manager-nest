@@ -33,29 +33,31 @@ The project focuses on solving **real-world backend problems** such as concurren
 
 The system is structured using **Hexagonal (Clean) Architecture**, ensuring that business rules remain isolated from frameworks, databases, and transport protocols.
 
-┌────────────────────────────┐
-│ Controllers │
-│ REST / gRPC / WebSocket │
-└─────────────┬──────────────┘
-│
-▼
-┌────────────────────────────┐
-│ Application Layer │
-│ (Use Cases / Services) │
-└─────────────┬──────────────┘
-│
-▼
-┌────────────────────────────┐
-│ Domain Layer │
-│ Entities + Repositories │
-│ (NO framework code) │
-└─────────────┬──────────────┘
-│
-▼
-┌────────────────────────────┐
-│ Infrastructure Layer │
-│ Prisma / DB / Gateways │
-└────────────────────────────┘
+```text
+┌───────────────────────────────────────────────────┐
+│                   Controllers                     │
+│          REST / gRPC / WebSocket / DTOs           │
+└─────────────────────────┬─────────────────────────┘
+                          │
+                          ▼
+┌───────────────────────────────────────────────────┐
+│                Application Layer                  │
+│             (Use Cases / Services)                │
+└─────────────────────────┬─────────────────────────┘
+                          │
+                          ▼
+┌───────────────────────────────────────────────────┐
+│                  Domain Layer                     │
+│           Entities + Repository Interfaces        │
+│                (NO framework code)                │
+└─────────────────────────┬─────────────────────────┘
+                          │
+                          ▼
+┌───────────────────────────────────────────────────┐
+│              Infrastructure Layer                 │
+│             Prisma / DB / Gateways                │
+└───────────────────────────────────────────────────┘
+```
 
 ### Layer Responsibilities
 
