@@ -1,0 +1,2657 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+prisma/
+  migrations/
+    20251127195934_add_boards_and_roles/
+      migration.sql
+    20251203130626_add_indexes/
+      migration.sql
+    migration_lock.toml
+  prisma-client-exception.filter.ts
+  prisma-transaction.manager.ts
+  prisma.module.ts
+  prisma.service.ts
+  schema.prisma
+  seed.ts
+proto/
+  tasks.proto
+src/
+  auth/
+    application/
+      auth.service.spec.ts
+      auth.service.ts
+    dto/
+      login.dto.ts
+    infrastructure/
+      decorators/
+        get-user.decorator.ts
+      presentation/
+        auth.controller.spec.ts
+        auth.controller.ts
+      strategies/
+        google.strategy.ts
+        jwt.strategy.ts
+    auth.module.ts
+  common/
+    transaction.manager.ts
+  http-exception/
+    http-exception.filter.spec.ts
+    http-exception.filter.ts
+  tasks/
+    application/
+      tasks.service.spec.ts
+      tasks.service.ts
+    domain/
+      board.entity.ts
+      board.repository.ts
+      task.entity.ts
+      task.repository.ts
+    dto/
+      create-task.dto.ts
+      update-task.dto.ts
+    infrastructure/
+      gateway/
+        tasks.gateway.ts
+      persistence/
+        board.mapper.ts
+        prisma-board.repository.ts
+        prisma-task.repository.ts
+        task.mapper.ts
+      presentation/
+        tasks.controller.spec.ts
+        tasks.controller.ts
+    tasks.module.ts
+  types/
+    express.d.ts
+  users/
+    application/
+      users.service.spec.ts
+      users.service.ts
+    domain/
+      user.entity.ts
+      user.repository.ts
+    dto/
+      create-user.dto.ts
+      update-user.dto.ts
+    infrastructure/
+      persistence/
+        prisma-user.repository.ts
+        user.mapper.ts
+      presentation/
+        users.controller.spec.ts
+        users.controller.ts
+    users.module.ts
+  app.controller.spec.ts
+  app.controller.ts
+  app.module.ts
+  app.service.ts
+  grpc-client.ts
+  main.ts
+test/
+  app.e2e-spec.ts
+  auth.e2e-spec.ts
+  jest-e2e.json
+.gitignore
+.prettierrc
+docker-compose.yml
+eslint.config.mjs
+nest-cli.json
+package.json
+README.md
+tsconfig.build.json
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="prisma/migrations/20251127195934_add_boards_and_roles/migration.sql">
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+
+-- CreateEnum
+CREATE TYPE "BoardType" AS ENUM ('PUBLIC', 'PRIVATE');
+
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "role" "Role" NOT NULL DEFAULT 'USER',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "refreshToken" TEXT,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Board" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "type" "BoardType" NOT NULL DEFAULT 'PRIVATE',
+    "ownerId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Board_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Task" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "completed" BOOLEAN NOT NULL DEFAULT false,
+    "description" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "boardId" TEXT NOT NULL,
+    "authorId" TEXT NOT NULL,
+    "assigneeId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "Board_ownerId_idx" ON "Board"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "Task_boardId_idx" ON "Task"("boardId");
+
+-- CreateIndex
+CREATE INDEX "Task_assigneeId_idx" ON "Task"("assigneeId");
+
+-- CreateIndex
+CREATE INDEX "Task_authorId_idx" ON "Task"("authorId");
+
+-- AddForeignKey
+ALTER TABLE "Board" ADD CONSTRAINT "Board_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/20251203130626_add_indexes/migration.sql">
+-- CreateIndex
+CREATE INDEX "Task_boardId_completed_idx" ON "Task"("boardId", "completed");
+</file>
+
+<file path="prisma/migrations/migration_lock.toml">
+# Please do not edit this file manually
+# It should be added in your version-control system (e.g., Git)
+provider = "postgresql"
+</file>
+
+<file path="prisma/prisma-client-exception.filter.ts">
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpStatus,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { Response } from 'express';
+
+@Catch(Prisma.PrismaClientKnownRequestError)
+export class PrismaClientExceptionFilter implements ExceptionFilter {
+  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const message = exception.message.replace(/\n/g, '');
+
+    switch (exception.code) {
+      case 'P2002': {
+        const status = HttpStatus.CONFLICT;
+        response.status(status).json({
+          statusCode: status,
+          message: `Unique constraint failed on the ${exception.meta?.target}`,
+        });
+        break;
+      }
+      case 'P2025': {
+        const status = HttpStatus.NOT_FOUND;
+        response.status(status).json({
+          statusCode: status,
+          message: 'Record not found',
+        });
+        break;
+      }
+      default:
+        response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: message,
+        });
+        break;
+    }
+  }
+}
+</file>
+
+<file path="prisma/prisma-transaction.manager.ts">
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+import { TransactionManager } from 'src/common/transaction.manager';
+
+@Injectable()
+export class PrismaTransactionManager implements TransactionManager {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async run<T>(callback: (tx: unknown) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      return callback(tx);
+    });
+  }
+}
+</file>
+
+<file path="prisma/prisma.module.ts">
+import { Global, Module } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+import { PrismaTransactionManager } from './prisma-transaction.manager';
+
+@Global()
+@Module({
+  providers: [
+    PrismaService,
+    {
+      provide: 'TransactionManager',
+      useClass: PrismaTransactionManager,
+    },
+  ],
+  exports: [PrismaService, 'TransactionManager'],
+})
+export class PrismaModule {}
+</file>
+
+<file path="prisma/prisma.service.ts">
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  async onModuleInit() {
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
+}
+</file>
+
+<file path="prisma/schema.prisma">
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BoardType {
+  PUBLIC
+  PRIVATE
+}
+
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  username String
+  password String
+  role     Role   @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshToken String?
+
+  createdTasks  Task[]  @relation("CreatedTasks")
+  assignedTasks Task[]  @relation("AssignedTasks")
+  boards        Board[]
+}
+
+model Board {
+  id    String    @id @default(cuid())
+  title String
+  type  BoardType @default(PRIVATE)
+
+  ownerId String?
+  owner   User?   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+
+  @@index([ownerId])
+}
+
+model Task {
+  id          String  @id @default(cuid())
+  title       String
+  completed   Boolean @default(false)
+  description String?
+
+  version Int @default(1)
+
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("CreatedTasks", fields: [authorId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("AssignedTasks", fields: [assigneeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
+  @@index([assigneeId])
+  @@index([boardId, completed])
+  @@index([authorId])
+}
+</file>
+
+<file path="prisma/seed.ts">
+import { PrismaClient, Role, BoardType } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('🌱 Starting database seed...');
+
+  const adminPassword = await bcrypt.hash('admin123', 10);
+
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@taskmanager.com' },
+    update: {},
+    create: {
+      email: 'admin@taskmanager.com',
+      username: 'System admin',
+      password: adminPassword,
+      role: Role.ADMIN,
+    },
+  });
+
+  console.log(`👤 Admin user ensured: ${admin.email}`);
+
+  const generalBoard = await prisma.board.upsert({
+    where: {
+      id: 'public-general-board-id',
+    },
+    update: {},
+    create: {
+      id: 'public-general-board-id',
+      title: 'General Desk',
+      type: BoardType.PUBLIC,
+      ownerId: null,
+    },
+  });
+
+  console.log(`📋 General Board ensured: ${generalBoard.title}`);
+  console.log('✅ Seeding completed.');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Seeding failed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+</file>
+
+<file path="proto/tasks.proto">
+syntax = "proto3";
+
+package tasks;
+
+service TasksService {
+    rpc FindAll (Empty) returns (TaskList);
+    rpc Create (CreateTaskRequest) returns (Task);
+}
+
+message Empty {}
+
+message CreateTaskRequest {
+    string title = 1;
+    string authorId = 2;
+}
+
+message Task {
+    string id = 1;
+    string title = 2;
+    bool completed = 3; 
+    string authorId = 4;
+}
+
+message TaskList {
+    repeated Task tasks = 1;
+}
+</file>
+
+<file path="src/auth/application/auth.service.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuthService } from './auth.service';
+import { PrismaService } from 'prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from 'src/users/application/users.service';
+import { ConfigService } from '@nestjs/config';
+
+describe('AuthService', () => {
+  let service: AuthService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        {
+          provide: PrismaService,
+          useValue: { user: { findUnique: jest.fn(), update: jest.fn() } },
+        },
+        {
+          provide: JwtService,
+          useValue: { signAsync: jest.fn(), verifyAsync: jest.fn() },
+        },
+        {
+          provide: UsersService,
+          useValue: {
+            create: jest.fn(),
+            findByEmail: jest.fn(),
+            findOne: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mock-secret'),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+});
+</file>
+
+<file path="src/auth/application/auth.service.ts">
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from 'src/users/application/users.service';
+import { LoginDto } from '../dto/login.dto';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import * as bcrypt from 'bcryptjs';
+import { ConfigService } from '@nestjs/config';
+import { User } from 'src/users/domain/user.entity';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+}
+
+interface GoogleProfile {
+  emails: { value: string }[];
+  displayName: string;
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private jwtService: JwtService,
+    private usersService: UsersService,
+    private configService: ConfigService,
+  ) {}
+
+  async register(dto: CreateUserDto) {
+    return this.usersService.create(dto);
+  }
+
+  async login(dto: LoginDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    return this.generateTokens(user);
+  }
+
+  async validateGoogleUser(profile: any) {
+    const googleProfile = profile as GoogleProfile;
+    const { emails, displayName } = googleProfile;
+    const email = emails[0].value;
+
+    let user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8);
+      user = await this.usersService.create({
+        email,
+
+        username: displayName,
+        password: randomPassword,
+      });
+    }
+    return user;
+  }
+
+  async generateTokens(user: User) {
+    const payload = { sub: user.id, email: user.email };
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_TOKEN'),
+        expiresIn: '7d',
+      }),
+    ]);
+    return { accessToken, refreshToken };
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(
+        refreshToken,
+        {
+          secret: this.configService.get<string>('JWT_REFRESH_TOKEN'),
+        },
+      );
+
+      const user = await this.usersService.findOne(payload.sub);
+      if (!user) throw new ForbiddenException('Access Denied');
+
+      const tokens = await this.generateTokens(user);
+
+      return tokens;
+    } catch (e) {
+      throw new ForbiddenException('Invalid Refresh Token');
+    }
+  }
+}
+</file>
+
+<file path="src/auth/dto/login.dto.ts">
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+
+export class LoginDto {
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+}
+</file>
+
+<file path="src/auth/infrastructure/decorators/get-user.decorator.ts">
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { Request } from 'express';
+
+export const GetUser = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest<Request>();
+
+    return request.user;
+  },
+);
+</file>
+
+<file path="src/auth/infrastructure/presentation/auth.controller.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuthController } from './auth.controller';
+import { AuthService } from '../../application/auth.service';
+import { ConfigService } from '@nestjs/config';
+
+describe('AuthController', () => {
+  let controller: AuthController;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AuthController],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            register: jest.fn(),
+            login: jest.fn(),
+            generateTokens: jest
+              .fn()
+              .mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' }),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('http://localhost:3000'),
+          },
+        },
+      ],
+    }).compile();
+
+    controller = module.get<AuthController>(AuthController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+</file>
+
+<file path="src/auth/infrastructure/presentation/auth.controller.ts">
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Req,
+  Res,
+} from '@nestjs/common';
+import { AuthService } from 'src/auth/application/auth.service';
+import { LoginDto } from 'src/auth/dto/login.dto';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
+
+@Controller('auth')
+export class AuthController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Post('register')
+  async register(@Body() createUserDto: CreateUserDto) {
+    return this.authService.register(createUserDto);
+  }
+
+  @Post('login')
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
+
+  @Post('refresh')
+  async refreshTokens(@Body('refreshToken') refreshToken: string) {
+    return this.authService.refreshToken(refreshToken);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const user = req.user;
+    const { accessToken, refreshToken } =
+      await this.authService.generateTokens(user);
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    res.redirect(
+      `${frontendUrl}?token=${accessToken}&refreshToken=${refreshToken}`,
+    );
+  }
+}
+</file>
+
+<file path="src/auth/infrastructure/strategies/google.strategy.ts">
+import { PassportStrategy } from '@nestjs/passport';
+import { VerifyCallback, Strategy } from 'passport-google-oauth20';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AuthService } from 'src/auth/application/auth.service';
+
+@Injectable()
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  constructor(
+    configService: ConfigService,
+    private authService: AuthService,
+  ) {
+    super({
+      clientID: configService.get<string>('GOOGLE_CLIENT_ID')!,
+      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET')!,
+      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL')!,
+      scope: ['email', 'profile'],
+    });
+  }
+
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ): Promise<any> {
+    const user = await this.authService.validateGoogleUser(profile);
+    done(null, user);
+  }
+}
+</file>
+
+<file path="src/auth/infrastructure/strategies/jwt.strategy.ts">
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PassportStrategy } from '@nestjs/passport';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from 'prisma/prisma.service';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    private prisma: PrismaService,
+    configService: ConfigService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET')!,
+    });
+  }
+
+  async validate(payload: JwtPayload) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User no longer exists');
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...result } = user;
+    return result;
+  }
+}
+</file>
+
+<file path="src/auth/auth.module.ts">
+import { Module } from '@nestjs/common';
+import { AuthController } from './infrastructure/presentation/auth.controller';
+import { AuthService } from './application/auth.service';
+import { UsersModule } from 'src/users/users.module';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
+import { GoogleStrategy } from './infrastructure/strategies/google.strategy';
+
+@Module({
+  imports: [
+    UsersModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_ACCESS_SECRET'),
+        signOptions: { expiresIn: '15m' },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
+})
+export class AuthModule {}
+</file>
+
+<file path="src/common/transaction.manager.ts">
+export interface TransactionManager {
+  run<T>(callback: (tx: unknown) => Promise<T>): Promise<T>;
+}
+</file>
+
+<file path="src/http-exception/http-exception.filter.spec.ts">
+import { HttpExceptionFilter } from './http-exception.filter';
+
+describe('HttpExceptionFilter', () => {
+  it('should be defined', () => {
+    expect(new HttpExceptionFilter()).toBeDefined();
+  });
+});
+</file>
+
+<file path="src/http-exception/http-exception.filter.ts">
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { Logger } from '@nestjs/common';
+
+@Catch()
+export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  catch(exception: Error | HttpException, host: ArgumentsHost) {
+    if (host.getType() !== 'http') {
+      return;
+    }
+
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const errorResponse =
+      exception instanceof HttpException
+        ? exception.getResponse()
+        : { message: 'Internal Server Error' };
+
+    this.logger.error(
+      `${request.method} ${request.url} - Status ${status}`,
+      exception.stack,
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message:
+        (errorResponse as any).message ||
+        (errorResponse as any).error ||
+        exception.message ||
+        'An unexpected error occured',
+    });
+  }
+}
+</file>
+
+<file path="src/tasks/application/tasks.service.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { TasksService } from './tasks.service';
+import { PrismaService } from 'prisma/prisma.service';
+import { CreateTaskDto } from '../dto/create-task.dto';
+
+const mockTaskRepository = {
+  save: jest.fn(),
+  findAllByAuthor: jest.fn(),
+  findById: jest.fn(),
+  delete: jest.fn(),
+};
+
+const mockBoardRepository = {
+  findPrivateByOwner: jest.fn(),
+};
+
+const mockPrismaService = {
+  board: {
+    findFirst: jest.fn(),
+  },
+  task: {
+    create: jest.fn(),
+  },
+};
+
+describe('TasksService', () => {
+  let service: TasksService;
+  let repository: typeof mockTaskRepository;
+  let boardRepository: typeof mockBoardRepository;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        TasksService,
+        { provide: 'TaskRepository', useValue: mockTaskRepository },
+        { provide: 'BoardRepository', useValue: mockBoardRepository },
+        { provide: PrismaService, useValue: mockPrismaService },
+      ],
+    }).compile();
+
+    service = module.get<TasksService>(TasksService);
+    repository = module.get('TaskRepository');
+    boardRepository = module.get('BoardRepository');
+
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('create', () => {
+    it('should create a new task and return it', async () => {
+      const userId = 'user123';
+      const createTaskDto: CreateTaskDto = {
+        title: 'Unit Test Task',
+      };
+
+      mockBoardRepository.findPrivateByOwner.mockResolvedValue({
+        id: 'board-123',
+      });
+
+      const result = await service.create(createTaskDto, userId);
+
+      expect(result.title).toEqual('Unit Test Task');
+      expect(boardRepository.findPrivateByOwner).toHaveBeenCalledWith(userId);
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          boardId: 'board-123',
+        }),
+      );
+    });
+  });
+});
+</file>
+
+<file path="src/tasks/application/tasks.service.ts">
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
+import type { TaskRepository } from '../domain/task.repository';
+import { CreateTaskDto } from '../dto/create-task.dto';
+import { UpdateTaskDto } from '../dto/update-task.dto';
+import { Task } from '../domain/task.entity';
+import type { BoardRepository } from '../domain/board.repository';
+import { randomUUID } from 'crypto';
+
+@Injectable()
+export class TasksService {
+  constructor(
+    @Inject('TaskRepository')
+    private readonly taskRepository: TaskRepository,
+    @Inject('BoardRepository')
+    private readonly boardRepository: BoardRepository,
+  ) {}
+
+  async findAll(userId: string): Promise<Task[]> {
+    return this.taskRepository.findAllByAuthor(userId);
+  }
+
+  async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
+    let boardId = createTaskDto.boardId;
+
+    if (!boardId) {
+      const userBoard = await this.boardRepository.findPrivateByOwner(userId);
+      if (!userBoard) {
+        throw new NotFoundException(
+          'User has no private board to create this task in.',
+        );
+      }
+      boardId = userBoard.id;
+    }
+
+    const newTask = new Task(
+      randomUUID(),
+      createTaskDto.title,
+      null,
+      false,
+      userId,
+      boardId,
+      null,
+      1,
+      new Date(),
+      new Date(),
+    );
+
+    await this.taskRepository.save(newTask);
+    return newTask;
+  }
+
+  async update(
+    taskId: string,
+    userId: string,
+    updateTaskDto: UpdateTaskDto,
+  ): Promise<Task> {
+    const task = await this.taskRepository.findById(taskId);
+
+    if (!task) throw new NotFoundException('Task not found');
+
+    if (task.authorId !== userId) {
+      throw new ForbiddenException('You do not own this task');
+    }
+
+    try {
+      task.update(
+        updateTaskDto.title,
+        updateTaskDto.completed,
+        updateTaskDto.version,
+      );
+
+      await this.taskRepository.save(task);
+      return task;
+    } catch (error: any) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw error;
+    }
+  }
+
+  async delete(userId: string, taskId: string): Promise<void> {
+    const task = await this.taskRepository.findById(taskId);
+    if (!task) throw new NotFoundException('Task not found');
+
+    if (task.authorId !== userId) {
+      throw new ForbiddenException('You do not own this task');
+    }
+    await this.taskRepository.delete(taskId);
+  }
+}
+</file>
+
+<file path="src/tasks/domain/board.entity.ts">
+import { BoardType } from '@prisma/client';
+
+export class Board {
+  constructor(
+    public readonly id: string,
+    public readonly title: string,
+    public readonly type: BoardType,
+    public readonly ownerId: string | null,
+    public readonly createdAt: Date,
+    public readonly updatedAt: Date,
+  ) {}
+
+  canEdit(userId: string): boolean {
+    if (this.type === BoardType.PUBLIC) return true;
+    return this.ownerId === userId;
+  }
+}
+</file>
+
+<file path="src/tasks/domain/board.repository.ts">
+import { Board } from './board.entity';
+
+export type Transaction = unknown;
+
+export interface BoardRepository {
+  save(board: Board, tx?: Transaction): Promise<Board>;
+  findPrivateByOwner(ownerId: string): Promise<Board | null>;
+}
+</file>
+
+<file path="src/tasks/domain/task.entity.ts">
+import { ConflictException } from '@nestjs/common';
+
+export class Task {
+  constructor(
+    public readonly id: string,
+    public title: string,
+    public description: string | null,
+    public completed: boolean,
+    public readonly authorId: string,
+    public readonly boardId: string,
+    public assigneeId: string | null,
+    public version: number,
+    public readonly createdAt: Date,
+    public readonly updatedAt: Date,
+  ) {}
+
+  update(
+    title: string | undefined,
+    completed: boolean | undefined,
+    version: number,
+  ): void {
+    if (version !== this.version) {
+      throw new ConflictException(
+        `Optimistic Lock Error: You are trying to update version ${version}, but the server has version ${this.version}. Please refresh.`,
+      );
+    }
+    if (title !== undefined) this.title = title;
+    if (completed !== undefined) this.completed = completed;
+
+    this.version++;
+  }
+
+  assignTo(userId: string) {
+    this.assigneeId = userId;
+    this.version++;
+  }
+}
+</file>
+
+<file path="src/tasks/domain/task.repository.ts">
+import { Task } from './task.entity';
+
+export interface TaskRepository {
+  save(task: Task): Promise<void>;
+  findById(id: string): Promise<Task | null>;
+  findAllByBoard(boardId: string): Promise<Task[]>;
+  findAllByAuthor(authorId: string): Promise<Task[]>;
+  delete(id: string): Promise<void>;
+}
+</file>
+
+<file path="src/tasks/dto/create-task.dto.ts">
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export class CreateTaskDto {
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  boardId?: string;
+}
+</file>
+
+<file path="src/tasks/dto/update-task.dto.ts">
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
+
+export class UpdateTaskDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  title?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  completed?: boolean;
+
+  @IsNumber()
+  version: number;
+}
+</file>
+
+<file path="src/tasks/infrastructure/gateway/tasks.gateway.ts">
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+} from '@nestjs/websockets';
+import { Server } from 'socket.io';
+
+@WebSocketGateway({ cors: true })
+export class TasksGateway {
+  @WebSocketServer()
+  server: Server;
+  notifyTaskUpdated(boardId: string, task: any) {
+    this.server.to(`board:${boardId}`).emit('taskUpdate', task);
+  }
+}
+</file>
+
+<file path="src/tasks/infrastructure/persistence/board.mapper.ts">
+import { Board as PrismaBoard } from '@prisma/client';
+import { Board } from 'src/tasks/domain/board.entity';
+
+export class BoardMapper {
+  static toDomain(raw: PrismaBoard): Board {
+    return new Board(
+      raw.id,
+      raw.title,
+      raw.type,
+      raw.ownerId,
+      raw.createdAt,
+      raw.updatedAt,
+    );
+  }
+
+  static toPersistence(entity: Board): PrismaBoard {
+    return {
+      id: entity.id,
+      title: entity.title,
+      type: entity.type,
+      ownerId: entity.ownerId,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+}
+</file>
+
+<file path="src/tasks/infrastructure/persistence/prisma-board.repository.ts">
+import { Injectable } from '@nestjs/common';
+import {
+  BoardRepository,
+  Transaction,
+} from 'src/tasks/domain/board.repository';
+import { Board } from 'src/tasks/domain/board.entity';
+import { PrismaService } from 'prisma/prisma.service';
+import { BoardMapper } from './board.mapper';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class PrismaBoardRepository implements BoardRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async save(board: Board, tx?: Transaction): Promise<Board> {
+    const client = (tx as Prisma.TransactionClient) || this.prisma;
+
+    const data = BoardMapper.toPersistence(board);
+
+    const saveBoard = await client.board.upsert({
+      where: { id: board.id },
+      update: data,
+      create: data,
+    });
+
+    return BoardMapper.toDomain(saveBoard);
+  }
+
+  async findPrivateByOwner(ownerId: string): Promise<Board | null> {
+    const raw = await this.prisma.board.findFirst({
+      where: {
+        ownerId,
+        type: 'PRIVATE',
+      },
+    });
+    return raw ? BoardMapper.toDomain(raw) : null;
+  }
+}
+</file>
+
+<file path="src/tasks/infrastructure/persistence/prisma-task.repository.ts">
+import { Injectable, ConflictException } from '@nestjs/common';
+import { TaskRepository } from 'src/tasks/domain/task.repository';
+import { Task } from 'src/tasks/domain/task.entity';
+import { PrismaService } from 'prisma/prisma.service';
+import { TaskMapper } from './task.mapper';
+
+@Injectable()
+export class PrismaTaskRepository implements TaskRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async save(task: Task): Promise<void> {
+    const data = TaskMapper.toPersistence(task);
+
+    if (task.version === 1) {
+      await this.prisma.task.create({ data });
+      return;
+    }
+
+    const result = await this.prisma.task.updateMany({
+      where: {
+        id: task.id,
+        version: task.version - 1,
+      },
+      data: data,
+    });
+
+    if (result.count === 0) {
+      throw new ConflictException('Task version mismatch. Please refresh.');
+    }
+  }
+
+  async findById(id: string): Promise<Task | null> {
+    const raw = await this.prisma.task.findUnique({ where: { id } });
+    if (!raw) return null;
+    return TaskMapper.toDomain(raw);
+  }
+
+  async findAllByBoard(boardId: string): Promise<Task[]> {
+    const rawTasks = await this.prisma.task.findMany({
+      where: { boardId },
+    });
+    return rawTasks.map((task) => TaskMapper.toDomain(task));
+  }
+
+  async findAllByAuthor(authorId: string): Promise<Task[]> {
+    const rawTasks = await this.prisma.task.findMany({
+      where: { authorId },
+    });
+    return rawTasks.map((task) => TaskMapper.toDomain(task));
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.task.delete({ where: { id } });
+  }
+}
+</file>
+
+<file path="src/tasks/infrastructure/persistence/task.mapper.ts">
+import { Task as PrismaTask } from '@prisma/client';
+import { Task } from '../../domain/task.entity';
+
+export class TaskMapper {
+  static toDomain(raw: PrismaTask): Task {
+    return new Task(
+      raw.id,
+      raw.title,
+      raw.description,
+      raw.completed,
+      raw.authorId,
+      raw.boardId,
+      raw.assigneeId,
+      raw.version,
+      raw.createdAt,
+      raw.updatedAt,
+    );
+  }
+
+  static toPersistence(entity: Task): PrismaTask {
+    return {
+      id: entity.id,
+      title: entity.title,
+      description: entity.description,
+      completed: entity.completed,
+      authorId: entity.authorId,
+      boardId: entity.boardId,
+      assigneeId: entity.assigneeId,
+      version: entity.version,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+}
+</file>
+
+<file path="src/tasks/infrastructure/presentation/tasks.controller.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { TasksController } from './tasks.controller';
+import { TasksService } from '../../application/tasks.service';
+
+describe('TasksController', () => {
+  let controller: TasksController;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [TasksController],
+      providers: [
+        {
+          provide: TasksService,
+          useValue: {
+            findAll: jest.fn(),
+            create: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    controller = module.get<TasksController>(TasksController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+</file>
+
+<file path="src/tasks/infrastructure/presentation/tasks.controller.ts">
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
+import { TasksService } from 'src/tasks/application/tasks.service';
+import { CreateTaskDto } from '../../dto/create-task.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { GetUser } from 'src/auth/infrastructure/decorators/get-user.decorator';
+import type { User } from '@prisma/client';
+import { UpdateTaskDto } from '../../dto/update-task.dto';
+
+@Controller('tasks')
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  async findAll(@GetUser() user: User) {
+    return this.tasksService.findAll(user.id);
+  }
+
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  async create(@Body() createTaskDto: CreateTaskDto, @GetUser() user: User) {
+    return this.tasksService.create(createTaskDto, user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
+  async update(
+    @Param(':id') id: string,
+    @GetUser() user: User,
+    @Body() updateTaskDto: UpdateTaskDto,
+  ) {
+    return this.tasksService.update(id, user.id, updateTaskDto);
+  }
+
+  @GrpcMethod('TasksService', 'FindAll')
+  async findAllGrpc(data: any) {
+    return { tasks: await this.tasksService.findAll('some-system-id') };
+  }
+
+  @GrpcMethod('TasksService', 'Create')
+  async createGrpc(data: { title: string; authorId: string }) {
+    return this.tasksService.create({ title: data.title }, data.authorId);
+  }
+}
+</file>
+
+<file path="src/tasks/tasks.module.ts">
+import { Module } from '@nestjs/common';
+import { PrismaBoardRepository } from './infrastructure/persistence/prisma-board.repository';
+import { TasksController } from './infrastructure/presentation/tasks.controller';
+import { TasksService } from './application/tasks.service';
+import { PrismaModule } from 'prisma/prisma.module';
+import { PrismaTaskRepository } from './infrastructure/persistence/prisma-task.repository';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [TasksController],
+  providers: [
+    TasksService,
+    { provide: 'TaskRepository', useClass: PrismaTaskRepository },
+    { provide: 'BoardRepository', useClass: PrismaBoardRepository },
+  ],
+  exports: ['BoardRepository'],
+})
+export class TasksModule {}
+</file>
+
+<file path="src/types/express.d.ts">
+import { User } from '@prisma/client';
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
+</file>
+
+<file path="src/users/application/users.service.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { UsersService } from './users.service';
+import { PrismaService } from 'prisma/prisma.service';
+// import { NotFoundException } from '@nestjs/common';
+
+const mockPrismaService = {
+  user: {
+    update: jest.fn(),
+    findUnique: jest.fn(),
+    delete: jest.fn(),
+  },
+};
+
+const mockUserRepository = {
+  save: jest.fn(),
+  findById: jest.fn(),
+  findByEmail: jest.fn(),
+  delete: jest.fn(),
+};
+
+const mockBoardRepository = {
+  save: jest.fn(),
+};
+
+const mockTransactionManager = {
+  run: jest.fn((callback) => callback(mockPrismaService)),
+};
+
+describe('UsersService', () => {
+  let service: UsersService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        { provide: 'UserRepository', useValue: mockUserRepository },
+        { provide: 'BoardRepository', useValue: mockBoardRepository },
+        { provide: 'TransactionManager', useValue: mockTransactionManager },
+        { provide: PrismaService, useValue: mockPrismaService },
+      ],
+    }).compile();
+
+    service = module.get<UsersService>(UsersService);
+    jest.clearAllMocks();
+  });
+
+  describe('delete', () => {
+    it('should delete the user if they exist', async () => {
+      mockUserRepository.delete.mockResolvedValue(undefined);
+
+      await service.delete('user-1');
+
+      expect(mockUserRepository.delete).toHaveBeenCalledWith('user-1');
+    });
+    // it('Should throw notFoundException if user does not exist', async () => {
+    //   mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+    //   await expect(service.delete('bad-id')).rejects.toThrow(NotFoundException);
+
+    //   expect(prisma.user.delete).not.toHaveBeenCalled();
+    // });
+  });
+});
+</file>
+
+<file path="src/users/application/users.service.ts">
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import type { UserRepository } from '../domain/user.repository';
+import type { BoardRepository } from 'src/tasks/domain/board.repository';
+import type { TransactionManager } from 'src/common/transaction.manager';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { User } from '../domain/user.entity';
+import { Board } from 'src/tasks/domain/board.entity';
+import * as bcrypt from 'bcryptjs';
+import { Role, BoardType } from '@prisma/client';
+import { randomUUID } from 'crypto';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @Inject('UserRepository')
+    private readonly userRepository: UserRepository,
+
+    @Inject('BoardRepository')
+    private readonly boardRepository: BoardRepository,
+
+    @Inject('TransactionManager')
+    private readonly txManager: TransactionManager,
+  ) {}
+
+  async create(dto: CreateUserDto): Promise<User> {
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    return await this.txManager.run(async (tx) => {
+      const newUser = new User(
+        randomUUID(),
+        dto.email,
+        dto.username,
+        hashedPassword,
+        Role.USER,
+        new Date(),
+        new Date(),
+      );
+
+      const savedUser = await this.userRepository.save(newUser, tx);
+
+      const newBoard = new Board(
+        randomUUID(),
+        'My Personal Board',
+        BoardType.PRIVATE,
+        savedUser.id,
+        new Date(),
+        new Date(),
+      );
+
+      await this.boardRepository.save(newBoard, tx);
+
+      return savedUser;
+    });
+  }
+  async update(id: string, dto: UpdateUserDto): Promise<User> {
+    const user = await this.userRepository.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+
+    user.update(dto.email, dto.username);
+
+    return this.userRepository.save(user);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.userRepository.delete(id);
+  }
+
+  async findOne(id: string): Promise<User> {
+    const user = await this.userRepository.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) throw new NotFoundException('User not Found');
+    return user;
+  }
+}
+</file>
+
+<file path="src/users/domain/user.entity.ts">
+import { Exclude } from 'class-transformer';
+import type { Role } from '@prisma/client';
+
+export class User {
+  public readonly id: string;
+  public email: string;
+  public username: string;
+  @Exclude()
+  public password: string;
+  public role: Role;
+  public readonly createdAt: Date;
+  public readonly updatedAt: Date;
+
+  constructor(
+    id: string,
+    email: string,
+    username: string,
+    password: string,
+    role: Role,
+    createdAt: Date,
+    updatedAt: Date,
+  ) {
+    this.id = id;
+    this.email = email;
+    this.username = username;
+    this.password = password;
+    this.role = role;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+
+  update(email?: string, username?: string) {
+    if (email) this.email = email;
+    if (username) this.username = username;
+  }
+}
+</file>
+
+<file path="src/users/domain/user.repository.ts">
+import { User } from './user.entity';
+
+export type Transaction = unknown;
+
+export interface UserRepository {
+  save(user: User, tx?: Transaction): Promise<User>;
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  delete(id: string): Promise<void>;
+}
+</file>
+
+<file path="src/users/dto/create-user.dto.ts">
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+
+export class CreateUserDto {
+  @IsEmail({}, { message: 'Invalid email format' })
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3, { message: 'Username must be at least 3 characters long' })
+  username: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  password: string;
+}
+</file>
+
+<file path="src/users/dto/update-user.dto.ts">
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+
+export class UpdateUserDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  username?: string;
+}
+</file>
+
+<file path="src/users/infrastructure/persistence/prisma-user.repository.ts">
+import { Injectable } from '@nestjs/common';
+import { UserRepository, Transaction } from 'src/users/domain/user.repository';
+import { User } from 'src/users/domain/user.entity';
+import { PrismaService } from 'prisma/prisma.service';
+import { UserMapper } from './user.mapper';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class PrismaUserRepository implements UserRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async save(user: User, tx?: Transaction): Promise<User> {
+    const client = (tx as Prisma.TransactionClient) || this.prisma;
+
+    const data = UserMapper.toPersistance(user);
+    const savedUser = await client.user.upsert({
+      where: { id: user.id },
+      update: data,
+      create: data,
+    });
+    return UserMapper.toDomain(savedUser);
+  }
+
+  async findById(id: string): Promise<User | null> {
+    const raw = await this.prisma.user.findUnique({ where: { id } });
+    if (!raw) return null;
+    return UserMapper.toDomain(raw);
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const raw = await this.prisma.user.findUnique({ where: { email } });
+    if (!raw) return null;
+    return UserMapper.toDomain(raw);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id } });
+  }
+}
+</file>
+
+<file path="src/users/infrastructure/persistence/user.mapper.ts">
+import { User as PrismaUser } from '@prisma/client';
+import { User } from 'src/users/domain/user.entity';
+
+export class UserMapper {
+  static toDomain(raw: PrismaUser): User {
+    return new User(
+      raw.id,
+      raw.email,
+      raw.username,
+      raw.password,
+      raw.role,
+      raw.createdAt,
+      raw.updatedAt,
+    );
+  }
+
+  static toPersistance(entity: User): PrismaUser {
+    return {
+      id: entity.id,
+      email: entity.email,
+      username: entity.username,
+      password: entity.password,
+      role: entity.role,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      refreshToken: null,
+    };
+  }
+}
+</file>
+
+<file path="src/users/infrastructure/presentation/users.controller.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { UsersController } from './users.controller';
+import { UsersService } from 'src/users/application/users.service';
+import { UpdateUserDto } from '../../dto/update-user.dto';
+import { User } from 'src/users/domain/user.entity';
+
+const mockUserEntity = {
+  id: 'user-123',
+  email: 'test@example.com',
+  username: 'testuser',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+describe('UsersController', () => {
+  let controller: UsersController;
+  let service: UsersService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UsersController],
+      providers: [
+        {
+          provide: UsersService,
+          useValue: {
+            update: jest.fn().mockResolvedValue(mockUserEntity),
+            delete: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+      ],
+    }).compile();
+
+    controller = module.get<UsersController>(UsersController);
+    service = module.get<UsersService>(UsersService);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('updateProfile', () => {
+    it('Should delegate to UsersService.update with correct params', async () => {
+      const dto: UpdateUserDto = { username: 'UpdatedName' };
+      const user = { id: 'user-123' } as User;
+
+      const result = await controller.updateProfile(user, dto);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.update).toHaveBeenCalledWith(user.id, dto);
+      expect(result).toEqual(mockUserEntity);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('Should delegate to UsersService.delete', async () => {
+      const user = { id: 'user-123' } as User;
+
+      await controller.deleteAccount(user);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(service.delete).toHaveBeenCalledWith(user.id);
+    });
+  });
+});
+</file>
+
+<file path="src/users/infrastructure/presentation/users.controller.ts">
+import {
+  Controller,
+  Body,
+  Patch,
+  Delete,
+  UseGuards,
+  UseInterceptors,
+  ClassSerializerInterceptor,
+} from '@nestjs/common';
+import { UsersService } from 'src/users/application/users.service';
+import { UpdateUserDto } from 'src/users/dto/update-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { GetUser } from 'src/auth/infrastructure/decorators/get-user.decorator';
+import { User } from 'src/users/domain/user.entity';
+
+@Controller('users')
+@UseGuards(AuthGuard('jwt'))
+@UseInterceptors(ClassSerializerInterceptor)
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Patch('me')
+  updateProfile(@GetUser() user: User, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(user.id, updateUserDto);
+  }
+
+  @Delete('me')
+  deleteAccount(@GetUser() user: User) {
+    return this.usersService.delete(user.id);
+  }
+}
+</file>
+
+<file path="src/users/users.module.ts">
+import { Module } from '@nestjs/common';
+import { UsersService } from './application/users.service';
+import { UsersController } from './infrastructure/presentation/users.controller';
+import { PrismaModule } from 'prisma/prisma.module';
+import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.repository';
+import { TasksModule } from 'src/tasks/tasks.module';
+
+@Module({
+  imports: [PrismaModule, TasksModule],
+  controllers: [UsersController],
+  providers: [
+    UsersService,
+    { provide: 'UserRepository', useClass: PrismaUserRepository },
+  ],
+  exports: [UsersService],
+})
+export class UsersModule {}
+</file>
+
+<file path="src/app.controller.spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+describe('AppController', () => {
+  let appController: AppController;
+
+  beforeEach(async () => {
+    const app: TestingModule = await Test.createTestingModule({
+      controllers: [AppController],
+      providers: [AppService],
+    }).compile();
+
+    appController = app.get<AppController>(AppController);
+  });
+
+  describe('root', () => {
+    it('should return "Hello World!"', () => {
+      expect(appController.getHello()).toBe('Hello World!');
+    });
+  });
+});
+</file>
+
+<file path="src/app.controller.ts">
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
+
+@Controller()
+export class AppController {
+  constructor(private readonly appService: AppService) {}
+
+  @Get()
+  getHello(): string {
+    return this.appService.getHello();
+  }
+}
+</file>
+
+<file path="src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { TasksModule } from './tasks/tasks.module';
+import { PrismaModule } from 'prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { LoggerModule } from 'nestjs-pino';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    TasksModule,
+    PrismaModule,
+    AuthModule,
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty' }
+            : undefined,
+        genReqId: (req) => req.headers['x-request-id'] || crypto.randomUUID(),
+      },
+    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
+    UsersModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+})
+export class AppModule {}
+</file>
+
+<file path="src/app.service.ts">
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class AppService {
+  getHello(): string {
+    return 'Hello World!';
+  }
+}
+</file>
+
+<file path="src/grpc-client.ts">
+import {
+  ClientProxyFactory,
+  Transport,
+  ClientGrpc,
+} from '@nestjs/microservices';
+import { join } from 'path';
+import { firstValueFrom, Observable } from 'rxjs';
+
+interface ITaskService {
+  findAll(data: any): Observable<any>;
+  create(data: any): Observable<any>;
+}
+
+async function run() {
+  const client: ClientGrpc = ClientProxyFactory.create({
+    transport: Transport.GRPC,
+    options: {
+      package: 'tasks',
+      protoPath: join(__dirname, '../proto/tasks.proto'),
+      url: 'localhost:50051',
+    },
+  });
+
+  const tasksService = client.getService<ITaskService>('TasksService');
+
+  console.log('📞 Connecting to gRPC Service...');
+  const REAL_USER_ID = 'cmi82yk6x0001319ewwt6ujfv';
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const response = await firstValueFrom(
+      tasksService.create({
+        title: 'Created via gRPC Binary Stream 🚀',
+        authorId: REAL_USER_ID,
+      }),
+    );
+
+    console.log('✅ Response from Server:', JSON.stringify(response, null, 2));
+    console.log('\n2️⃣  Fetching tasks via gRPC...');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const allTasks = await firstValueFrom(tasksService.findAll({}));
+    console.log('✅ FindAll Response:', JSON.stringify(allTasks, null, 2));
+  } catch (error) {
+    console.error('❌ gRPC Call Failed:', error);
+  }
+}
+
+run();
+</file>
+
+<file path="src/main.ts">
+import 'dotenv/config';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { HttpExceptionFilter } from './http-exception/http-exception.filter';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { join } from 'path';
+import { PrismaClientExceptionFilter } from 'prisma/prisma-client-exception.filter';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.GRPC,
+    options: {
+      package: 'tasks',
+      protoPath: join(__dirname, '../proto/tasks.proto'),
+      url: 'localhost:50051',
+    },
+  });
+
+  app.enableCors({
+    origin: ['http://localhost:5173', 'https://tasks.webservertaskmanager.com'],
+    methods: 'GET, HEAD, PUT, PATCH, POST, DELETE',
+    credentials: true,
+  });
+  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new PrismaClientExceptionFilter());
+
+  const config = new DocumentBuilder()
+    .setTitle('Task Manager API')
+    .setDescription('Task Manager API with DDD and Microservices')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
+
+  await app.startAllMicroservices();
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+</file>
+
+<file path="test/app.e2e-spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from './../src/app.module';
+
+describe('AppController (e2e)', () => {
+  let app: INestApplication<App>;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('/ (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('Hello World!');
+  });
+});
+</file>
+
+<file path="test/auth.e2e-spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import { AppModule } from 'src/app.module';
+import { PrismaService } from 'prisma/prisma.service';
+
+describe('Auth System (e2e)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe());
+    await app.init();
+
+    prisma = app.get<PrismaService>(PrismaService);
+  });
+
+  afterAll(async () => {
+    await prisma.user.deleteMany({ where: { email: 'test-e2e@example.com' } });
+    await app.close();
+  });
+
+  it('/auth/register (POST)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'test-e2e@example.com',
+        username: 'E2ETestUser',
+        password: 'password123',
+      })
+      .expect(201)
+      .then((response) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const body = response.body;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expect(body.id).toBeDefined();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expect(body.email).toEqual('test-e2e@example.com');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expect(body.password).toBeUndefined();
+      });
+  });
+});
+</file>
+
+<file path="test/jest-e2e.json">
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "^prisma/(.*)$": "<rootDir>/../prisma/$1"
+  }
+}
+</file>
+
+<file path=".gitignore">
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+/generated/prisma
+</file>
+
+<file path=".prettierrc">
+{
+  "singleQuote": true,
+  "trailingComma": "all"
+}
+</file>
+
+<file path="docker-compose.yml">
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=taskmanager_nest
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data_nest:/var/lib/postgresql/data
+
+volumes:
+  db_data_nest: {}
+</file>
+
+<file path="eslint.config.mjs">
+// @ts-check
+import eslint from '@eslint/js';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  {
+    ignores: ['eslint.config.mjs'],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  eslintPluginPrettierRecommended,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      sourceType: 'commonjs',
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+);
+</file>
+
+<file path="nest-cli.json">
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "../proto/*.proto",
+        "outDir": "./dist/proto",
+        "watchAssets": true
+      }
+    ]
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "task-manager-nest",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "call:grpc": "tsx src/grpc-client.ts",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.1",
+    "@grpc/proto-loader": "^0.8.0",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.1",
+    "@nestjs/microservices": "^11.1.9",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.9",
+    "@nestjs/swagger": "^11.2.3",
+    "@nestjs/throttler": "^6.4.0",
+    "@nestjs/websockets": "^11.1.9",
+    "@prisma/client": "^6.0.0",
+    "@types/passport-google-oauth20": "^2.0.17",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "dotenv": "^17.2.3",
+    "nestjs-pino": "^4.5.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-jwt": "^4.0.1",
+    "pino-http": "^11.0.0",
+    "pino-pretty": "^13.1.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.7",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/supertest": "^6.0.2",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.4.2",
+    "prisma": "^6.0.0",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1",
+      "^prisma/(.*)$": "<rootDir>/../prisma/$1"
+    }
+  }
+}
+</file>
+
+<file path="README.md">
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Project setup
+
+```bash
+$ npm install
+```
+
+## Compile and run the project
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
+## Run tests
+
+```bash
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
+```
+
+## Deployment
+
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## Resources
+
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+</file>
+
+<file path="tsconfig.build.json">
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false,
+    "typeRoots": ["./node_modules/@types", "./src/types"]
+  }
+}
+</file>
+
+</files>

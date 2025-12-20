@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=HoneyVanya
+      - POSTGRES_PASSWORD=2kkckw63
+      - POSTGRES_DB=taskmanager_nest
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data_nest:/var/lib/postgresql/data
+
+volumes:
+  db_data_nest: {}

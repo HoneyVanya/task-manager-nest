@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BoardType {
+  PUBLIC
+  PRIVATE
+}
+
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  username String
+  password String
+  role     Role   @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshToken String?
+
+  createdTasks  Task[]  @relation("CreatedTasks")
+  assignedTasks Task[]  @relation("AssignedTasks")
+  boards        Board[]
+}
+
+model Board {
+  id    String    @id @default(cuid())
+  title String
+  type  BoardType @default(PRIVATE)
+
+  ownerId String?
+  owner   User?   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+
+  @@index([ownerId])
+}
+
+model Task {
+  id          String  @id @default(cuid())
+  title       String
+  completed   Boolean @default(false)
+  description String?
+
+  version Int @default(1)
+
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("CreatedTasks", fields: [authorId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("AssignedTasks", fields: [assigneeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
+  @@index([assigneeId])
+  @@index([boardId, completed])
+  @@index([authorId])
+}

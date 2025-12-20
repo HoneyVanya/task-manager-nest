@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package tasks;
+
+service TasksService {
+    rpc FindAll (FindAllRequests) returns (TaskList);
+    rpc Create (CreateTaskRequest) returns (Task);
+}
+
+message Empty {}
+
+message FindAllRequests {
+    string userId = 1;
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+message CreateTaskRequest {
+    string title = 1;
+    string authorId = 2;
+}
+
+message Task {
+    string id = 1;
+    string title = 2;
+    bool completed = 3; 
+    string authorId = 4;
+}
+
+message TaskList {
+    repeated Task tasks = 1;
+}
