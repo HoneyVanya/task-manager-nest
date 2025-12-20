@@ -144,6 +144,7 @@ Both REST and gRPC expose the same application services.
 
 This validates that the application layer is **transport-agnostic**.
 
+```text
 src/
 ├── tasks/
 │ ├── domain/
@@ -164,6 +165,7 @@ src/
 ├── prisma/
 │ └── schema.prisma
 └── main.ts
+```
 
 ## ⚙️ Environment Variables
 
