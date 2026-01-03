@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/application/users.service';
@@ -10,6 +11,8 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/users/domain/user.entity';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 interface JwtPayload {
   sub: string;
@@ -27,10 +30,19 @@ export class AuthService {
     private jwtService: JwtService,
     private usersService: UsersService,
     private configService: ConfigService,
+    @InjectQueue('notifications') private readonly notificationsQueue: Queue,
   ) {}
 
   async register(dto: CreateUserDto) {
+    const existingUser = await this.usersService.findByEmail(dto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
+    }
     const user = await this.usersService.create(dto);
+    await this.notificationsQueue.add('welcome-email', {
+      email: user.email,
+      username: user.username,
+    });
     const tokens = await this.generateTokens(user);
     return {
       user,

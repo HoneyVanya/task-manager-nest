@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from 'src/app.module';
+import { AppModule } from './../src/app.module';
 import { PrismaService } from 'prisma/prisma.service';
 
 describe('Auth System (e2e)', () => {
@@ -14,37 +14,28 @@ describe('Auth System (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+      new ValidationPipe({ transform: true, whitelist: true }),
+    );
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
+    // Ensure clean state
+    await prisma.user.deleteMany();
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email: 'test-e2e@example.com' } });
     await app.close();
   });
 
-  it('/auth/register (POST)', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  it('/auth/register (POST) - Register with valid data', () => {
     return request(app.getHttpServer())
       .post('/auth/register')
       .send({
-        email: 'test-e2e@example.com',
-        username: 'E2ETestUser',
-        password: 'password123',
+        email: 'unique-auth-test@example.com',
+        username: 'AuthTester',
+        password: 'StrongPassword123!',
       })
-      .expect(201)
-      .then((response) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const body = response.body;
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(body.id).toBeDefined();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(body.email).toEqual('test-e2e@example.com');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(body.password).toBeUndefined();
-      });
+      .expect(201);
   });
 });

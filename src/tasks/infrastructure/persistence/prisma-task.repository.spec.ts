@@ -98,4 +98,65 @@ describe('PrismaTaskRepository (integration)', () => {
 
     await expect(repository.save(task)).rejects.toThrow(ConflictException);
   });
+
+  describe('findAllByBoard', () => {
+    beforeEach(async () => {
+      await prisma.task.deleteMany();
+      await prisma.task.createMany({
+        data: [
+          {
+            id: 't1',
+            title: 'Task 1',
+            boardId: board.id,
+            authorId: user.id,
+            version: 1,
+          },
+          {
+            id: 't2',
+            title: 'Task 2',
+            boardId: board.id,
+            authorId: user.id,
+            version: 1,
+          },
+          {
+            id: 't3',
+            title: 'Task 3',
+            boardId: board.id,
+            authorId: user.id,
+            version: 1,
+          },
+        ],
+      });
+    });
+
+    it('should return paginated tasks for a specific board', async () => {
+      const tasks = await repository.findAllByBoard(board.id, 0, 2);
+
+      expect(tasks).toHaveLength(2);
+      expect(tasks[0]).toBeInstanceOf(Task);
+      expect(tasks[0].title).toBe('Task 1');
+    });
+
+    it('should return empty array if board has no tasks', async () => {
+      const emptyTasks = await repository.findAllByBoard(
+        'non-existent-board',
+        0,
+        10,
+      );
+      expect(emptyTasks).toEqual([]);
+    });
+  });
+
+  describe('findById', () => {
+    it('should return a Task entity if found', async () => {
+      const task = await repository.findById('t1');
+      expect(task).toBeInstanceOf(Task);
+      expect(task?.id).toBe('t1');
+    });
+
+    it('should return null if not found', async () => {
+      const task = await repository.findById('missing');
+      expect(task).toBeNull();
+    });
+  });
 });

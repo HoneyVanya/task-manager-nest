@@ -8,6 +8,7 @@ import { join } from 'path';
 import { PrismaClientExceptionFilter } from 'prisma/prisma-client-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import { ReddisIoAdapter } from './common/adapters/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -40,6 +41,10 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalFilters(new PrismaClientExceptionFilter());
+
+  const reddisIoAdapter = new ReddisIoAdapter(app);
+  await reddisIoAdapter.connectToReddis();
+  app.useWebSocketAdapter(reddisIoAdapter);
 
   const config = new DocumentBuilder()
     .setTitle('Task Manager API')

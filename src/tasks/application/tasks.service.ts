@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import type { RedisClientType } from 'redis';
 import type { TaskRepository } from '../domain/task.repository';
 import type { BoardRepository } from '../domain/board.repository';
 import { Task } from '../domain/task.entity';
@@ -24,13 +25,45 @@ export class TasksService {
     @Inject('BoardRepository')
     private readonly boardRepository: BoardRepository,
     private readonly tasksGateway: TasksGateway,
+    @Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType,
   ) {}
+
+  private async clearGeneralBoardCache() {
+    const keys = await this.redisClient.keys('general_board*');
+    if (keys.length > 0) {
+      await this.redisClient.del(keys);
+    }
+  }
 
   async findGeneralTasks(filterDto: GetTasksFilterDto): Promise<Task[]> {
     const { page, limit } = filterDto;
+    const cacheKey = `general_board_p${page}_l${limit}`;
+
+    console.log(`🔍 [Cache Check] Key: ${cacheKey}`);
+
+    const cachedString = await this.redisClient.get(cacheKey);
+
+    if (cachedString) {
+      console.log(`✅ [Cache HIT] Returning cached data`);
+      return JSON.parse(cachedString);
+    }
+
+    console.log(`⚠️ [Cache MISS] Fetching from DB...`);
     const skip = (page - 1) * limit;
 
-    return this.taskRepository.findAllByBoard(GENERAL_BOARD_ID, skip, limit);
+    const tasks = await this.taskRepository.findAllByBoard(
+      GENERAL_BOARD_ID,
+      skip,
+      limit,
+    );
+
+    console.log(`💾 [Cache SET] Saving ${tasks.length} tasks to Redis...`);
+
+    await this.redisClient.set(cacheKey, JSON.stringify(tasks), { EX: 60 });
+
+    console.log(`🎉 [Cache SET] Success!`);
+
+    return tasks;
   }
 
   async findPrivateTasks(
@@ -63,6 +96,7 @@ export class TasksService {
 
     if (createTaskDto.boardId === GENERAL_BOARD_ID) {
       targetBoardId = GENERAL_BOARD_ID;
+      await this.clearGeneralBoardCache();
     } else {
       const userBoard = await this.boardRepository.findPrivateByOwner(userId);
       if (!userBoard) {
@@ -104,8 +138,9 @@ export class TasksService {
     const privateBoard = await this.boardRepository.findPrivateByOwner(userId);
     if (!privateBoard) throw new NotFoundException('User board not found');
 
-    task.accept(privateBoard.id, userId);
+    await this.clearGeneralBoardCache();
 
+    task.accept(privateBoard.id, userId);
     await this.taskRepository.save(task);
 
     this.tasksGateway.notifyTaskUpdated(GENERAL_BOARD_ID, task);

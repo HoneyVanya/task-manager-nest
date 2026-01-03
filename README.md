@@ -3,17 +3,17 @@
 A high-concurrency, real-time task management backend built with **Node.js** and **NestJS**.
 The system is engineered using **Hexagonal Architecture (Ports & Adapters)** and **Domain-Driven Design (DDD)** to enforce strict separation of concerns, dependency inversion, and long-term maintainability.
 
-It supports **REST** and **gRPC** as parallel transport layers, implements **Optimistic Concurrency Control** to prevent lost updates in collaborative workflows, and uses **WebSockets** for real-time state synchronization.
+It supports **REST** and **gRPC** as parallel transport layers, implements **Optimistic Concurrency Control** to prevent lost updates, and utilizes a **Distributed Redis Infrastructure** for caching, rate limiting, and background processing.
 
 ---
 
 ## 🛡 Build Status & Quality
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/your-username/task-manager-nest/ci.yml?style=flat-square)](https://github.com/your-username/task-manager-nest/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/HoneyVanya/task-manager-nest/ci.yml?style=flat-square)](https://github.com/HoneyVanya/task-manager-nest/actions)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green?style=flat-square)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-[![Coverage](https://img.shields.io/codecov/c/github/your-username/task-manager-nest?style=flat-square)](https://codecov.io/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker)](Dockerfile)
+[![Redis](https://img.shields.io/badge/redis-caching%20%26%20queues-red?style=flat-square&logo=redis)](https://redis.io/)
 
 ---
 
@@ -21,11 +21,11 @@ It supports **REST** and **gRPC** as parallel transport layers, implements **Opt
 
 This service implements a collaborative task board system where users can:
 
-1. **Collaborate** — create, update, and view tasks on a shared public board.
-2. **Claim Work** — atomically assign tasks to private user boards.
-3. **Sync in Real Time** — receive instant updates without polling or page refreshes.
+1.  **Collaborate** — create, update, and view tasks on a shared public board.
+2.  **Claim Work** — atomically assign tasks to private user boards.
+3.  **Sync in Real Time** — receive instant updates without polling or page refreshes.
 
-The project focuses on solving **real-world backend problems** such as concurrent updates, transport-agnostic business logic, and real-time consistency.
+The project focuses on solving **real-world backend problems** such as concurrent updates, distributed state management, and observability.
 
 ---
 
@@ -63,48 +63,68 @@ The system is structured using **Hexagonal (Clean) Architecture**, ensuring that
 
 #### 1. Domain Layer (`src/**/domain`)
 
-- **Responsibility:** Enterprise business rules
-- **Contains:** Entities, Value Objects, Repository Interfaces (Ports)
+- **Responsibility:** Enterprise business rules & Invariants
+- **Contains:** Entities, Value Objects, Repository Interfaces
 - **Dependencies:** None (pure TypeScript)
 
 #### 2. Application Layer (`src/**/application`)
 
-- **Responsibility:** Orchestrates use cases
-- **Contains:** Services
+- **Responsibility:** Orchestration & Use Cases
+- **Contains:** Services, DTOs
 - **Depends on:** Domain abstractions only
 
 #### 3. Infrastructure Layer (`src/**/infrastructure`)
 
 - **Responsibility:** Technical implementations
-- **Contains:** Prisma repositories, REST/gRPC controllers, WebSocket gateways
+- **Contains:** Prisma Repositories, Redis Client, BullMQ Processors, Controllers
 - **Depends on:** Application + Domain
-
-> All dependencies point inward. Infrastructure is replaceable without touching business logic.
 
 ---
 
 ## 🛠 Technology Stack & Rationale
 
-| Technology     | Role                  | Why It Was Chosen                                                                          |
-| -------------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| **NestJS**     | Application Framework | Enforces modularity, dependency injection, and testability suitable for enterprise systems |
-| **Prisma**     | Data Access Layer     | Type-safe database access with schema-first migrations                                     |
-| **PostgreSQL** | Database              | ACID compliance and strong transactional guarantees                                        |
-| **Socket.io**  | Real-Time Transport   | Bi-directional event-driven communication with room partitioning                           |
-| **gRPC**       | Internal RPC          | Strong typing, low latency, and efficient binary transport                                 |
-| **Passport**   | Authentication        | Strategy-based authentication with JWT support                                             |
-| **Docker**     | Containerization      | Environment parity across development and production                                       |
+| Technology     | Role         | Why It Was Chosen                                          |
+| :------------- | :----------- | :--------------------------------------------------------- |
+| **NestJS**     | Framework    | Modular architecture suitable for enterprise scale.        |
+| **Prisma**     | ORM          | Type-safe database access with schema-first migrations.    |
+| **PostgreSQL** | Primary DB   | ACID compliance for critical business data.                |
+| **Redis**      | Ephemeral DB | Low-latency caching, rate limiting storage, and Pub/Sub.   |
+| **BullMQ**     | Async Queues | Offloading heavy tasks (emails) to background workers.     |
+| **Socket.io**  | Real-Time    | Event-driven communication with Redis Adapter for scaling. |
+| **gRPC**       | Internal RPC | High-performance binary transport for microservices.       |
 
 ---
 
 ## 🧠 Key Design Decisions
 
-### Rich Domain Models (Not Anemic)
+### 1. Distributed Caching (Cache-Aside)
 
-Entities encapsulate both **state and behavior**.
-Business rules (e.g., assignment, completion, version checks) live inside entities, not services.
+The "General Board" is a read-heavy view. To reduce database load:
 
-**Result:** Invariants are enforced consistently, preventing logic leakage.
+- **Read:** The app checks Redis first (`GET general_board_p1`). If missing, it queries Postgres and populates Redis.
+- **Invalidation:** Any mutation (Create/Update/Delete) on the board automatically invalidates the specific cache keys to ensure consistency.
+
+### 2. Stateless Scalability
+
+The application is fully stateless, allowing for horizontal scaling:
+
+- **Rate Limiting:** Uses **Redis Throttler Storage** instead of memory, so limits apply across all instances.
+- **WebSockets:** Uses **Redis Adapter** to broadcast events across multiple server instances.
+
+### 3. Observability & Audit Logging
+
+An **Interceptor-based Audit Log** automatically tracks all mutations (`POST`, `PATCH`, `DELETE`).
+
+- **Mechanism:** Intercepts the response stream globally.
+- **Storage:** Saves action, user ID, resource ID, and timestamp to `AuditLog` table in Postgres.
+- **Benefit:** Zero-coupling with business logic; the service layer doesn't need to know logging exists.
+
+### 4. Asynchronous Background Jobs
+
+Heavy operations (like sending "Welcome Emails") are decoupled using **BullMQ**.
+
+- **Producer:** API pushes a job to the queue and returns `201 Created` immediately.
+- **Consumer:** A background worker picks up the job and processes it retry logic.
 
 ---
 
@@ -171,14 +191,13 @@ src/
 
 Configuration follows the **12-Factor App** methodology.
 
-| Variable           | Purpose               | Example                                  |
-| ------------------ | --------------------- | ---------------------------------------- |
-| DATABASE_URL       | PostgreSQL connection | postgresql://user:pass@localhost:5432/db |
-| JWT_ACCESS_SECRET  | JWT signing key       | access_secret                            |
-| JWT_REFRESH_SECRET | Refresh token key     | refresh_secret                           |
-| PORT               | HTTP port             | 3000                                     |
-| GRPC_URL           | gRPC address          | localhost:50051                          |
-| FRONTEND_URL       | CORS origin           | http://localhost:5173                    |
+| Variable            | Purpose               | Example                                    |
+| :------------------ | :-------------------- | :----------------------------------------- |
+| `DATABASE_URL`      | PostgreSQL connection | `postgresql://user:pass@localhost:5432/db` |
+| `REDIS_URL`         | Redis connection      | `redis://localhost:6379`                   |
+| `JWT_ACCESS_SECRET` | Auth Signing Key      | `secret_key`                               |
+| `PORT`              | HTTP port             | `3000`                                     |
+| `GRPC_URL`          | gRPC address          | `localhost:50051`                          |
 
 ---
 
@@ -192,12 +211,12 @@ Configuration follows the **12-Factor App** methodology.
 ### 2. Installation
 
 ```bash
-git clone https://github.com/your-username/task-manager-nest.git
+git clone [https://github.com/HoneyVanya/task-manager-nest.git](https://github.com/HoneyVanya/task-manager-nest.git)
 cd task-manager-nest
 npm install
 ```
 
-### 3. Start Database
+### 3. Start Infrastructure (DB + Redis)
 
 ```bash
 docker-compose up -d db
@@ -213,12 +232,10 @@ npx prisma db seed
 ### 5. Run the Application
 
 ```bash
+# Development Mode
 npm run start:dev
-```
 
-### Production build
-
-```bash
+# Production Build
 npm run build
 npm run start:prod
 ```
@@ -228,7 +245,10 @@ npm run start:prod
 ## 🧪 Testing
 
 ```bash
+# Unit Tests
 npm run test
+
+# End-to-End (E2E) Tests
 npm run test:e2e
 ```
 
@@ -254,18 +274,9 @@ proto/tasks.proto
 
 ---
 
-## ⚡ Real-Time Updates
-
-- Clients join board-specific WebSocket rooms
-- Updates are broadcast only to relevant rooms
-- No polling, no redundant traffic
-
----
-
 ## 🔮 Future Improvements
 
-- Redis adapter for horizontal WebSocket scaling
-- Read-through caching with Redis
-- Background jobs via BullMQ
-- OpenTelemetry tracing
-- Rate limiting & circuit breakers
+- OpenTelemetry tracing for distributed debugging.
+- Circuit Breakers for external service calls.
+- Frontend implementation (React/Vue).
+- CI/CD Pipeline (GitHub Actions).

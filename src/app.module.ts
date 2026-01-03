@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TasksModule } from './tasks/tasks.module';
@@ -11,6 +11,12 @@ import { LoggerModule } from 'nestjs-pino';
 import { UsersModule } from './users/users.module';
 import * as Joi from 'joi';
 import { HealthModule } from './health/health.module';
+import { BullModule } from '@nestjs/bullmq';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import { RedisModule } from './redis/redis.module';
+import { AuditModule } from './audit/audit.module';
+import { AuditInterceptor } from './audit/audit.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -35,6 +41,7 @@ import { HealthModule } from './health/health.module';
         abortEarly: true,
       },
     }),
+    RedisModule,
     TasksModule,
     PrismaModule,
     AuthModule,
@@ -58,16 +65,41 @@ import { HealthModule } from './health/health.module';
         },
       },
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 10,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: 60000,
+            limit: 10,
+          },
+        ],
+        storage: new ThrottlerStorageRedisService({
+          host: 'localhost',
+          port: 6379,
+        }),
+      }),
+    }),
     UsersModule,
     HealthModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: 'localhost',
+          port: 6379,
+        },
+      }),
+      inject: [ConfigService],
+    }),
+    AuditModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
 })
 export class AppModule {}

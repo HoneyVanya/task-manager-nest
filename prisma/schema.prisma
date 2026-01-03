@@ -74,3 +74,16 @@ model Task {
   @@index([boardId, completed])
   @@index([authorId])
 }
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityId   String
+  entityType String
+  action     String
+  userId     String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityId])
+  @@index([userId])
+}
