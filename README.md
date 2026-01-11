@@ -1,7 +1,7 @@
 # Task Management Backend
 
 A high-concurrency, real-time task management backend built with **Node.js** and **NestJS**.
-The system is engineered using **Hexagonal Architecture (Ports & Adapters)** and **Domain-Driven Design (DDD)** to enforce strict separation of concerns, dependency inversion, and long-term maintainability.
+The system is engineered using **Hexagonal Architecture (Ports & Adapters)** and **Domain-Driven Design (DDD)** to enforce strict separation of concerns, dependency inversion, and long-term maintainability.`
 
 It supports **REST** and **gRPC** as parallel transport layers, implements **Optimistic Concurrency Control** to prevent lost updates, and utilizes a **Distributed Redis Infrastructure** for caching, rate limiting, and background processing.
 

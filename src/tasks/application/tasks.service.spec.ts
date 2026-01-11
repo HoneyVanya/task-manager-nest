@@ -12,14 +12,16 @@ import { GENERAL_BOARD_ID } from 'src/common/constants';
 
 describe('TasksService', () => {
   let service: TasksService;
-  let taskRepo;
-  let boardRepo;
-  let gateway;
+  let taskRepo: any;
+  let boardRepo: any;
+  let gateway: any;
+  let mockRedis: any;
 
   const mockTaskRepo = {
     save: jest.fn(),
     findById: jest.fn(),
     findAllByBoard: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockBoardRepo = {
@@ -31,12 +33,20 @@ describe('TasksService', () => {
   };
 
   beforeEach(async () => {
+    mockRedis = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      keys: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
         { provide: 'TaskRepository', useValue: mockTaskRepo },
         { provide: 'BoardRepository', useValue: mockBoardRepo },
         { provide: TasksGateway, useValue: mockGateway },
+        { provide: 'REDIS_CLIENT', useValue: mockRedis },
       ],
     }).compile();
 
@@ -78,6 +88,8 @@ describe('TasksService', () => {
 
       expect(taskRepo.save).toHaveBeenCalledWith(task);
       expect(gateway.notifyTaskUpdated).toHaveBeenCalledTimes(2);
+
+      expect(mockRedis.keys).toHaveBeenCalled();
     });
 
     it('should fail if task is NOT on General Board', async () => {
@@ -121,6 +133,7 @@ describe('TasksService', () => {
         GENERAL_BOARD_ID,
         result,
       );
+      expect(mockRedis.keys).toHaveBeenCalled();
     });
   });
 
@@ -128,6 +141,7 @@ describe('TasksService', () => {
     it('should return tasks from repository', async () => {
       const mockResult = [{ id: '1' }];
       taskRepo.findAllByBoard.mockResolvedValue(mockResult);
+      mockRedis.get.mockResolvedValue(null);
 
       const result = await service.findGeneralTasks({ page: 1, limit: 10 });
       expect(result).toEqual(mockResult);
@@ -136,6 +150,16 @@ describe('TasksService', () => {
         0,
         10,
       );
+      expect(mockRedis.set).toHaveBeenCalled();
+    });
+    it('should return tasks from Redis (Cache Hit)', async () => {
+      const cachedTasks = [{ id: 'cached-1', title: 'Cached' }];
+      mockRedis.get.mockResolvedValue(JSON.stringify(cachedTasks));
+
+      const result = await service.findGeneralTasks({ page: 1, limit: 10 });
+
+      expect(result).toEqual(cachedTasks);
+      expect(taskRepo.findAllByBoard).not.toHaveBeenCalled();
     });
   });
 

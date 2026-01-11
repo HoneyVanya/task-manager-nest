@@ -6,6 +6,7 @@ import { UsersService } from 'src/users/application/users.service';
 import { ConfigService } from '@nestjs/config';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { getQueueToken } from '@nestjs/bullmq';
 
 jest.mock('bcryptjs');
 
@@ -13,6 +14,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersService: any;
   let jwtService: any;
+  let mockQueue: any;
 
   const mockUser = {
     id: 'user-uuid',
@@ -22,6 +24,9 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
+    mockQueue = {
+      add: jest.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -35,11 +40,16 @@ describe('AuthService', () => {
           useValue: {
             create: jest.fn(),
             findByEmail: jest.fn(),
+            findOne: jest.fn(),
           },
         },
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue('secret') },
+        },
+        {
+          provide: getQueueToken('notifications'),
+          useValue: mockQueue,
         },
       ],
     }).compile();
@@ -62,6 +72,10 @@ describe('AuthService', () => {
 
       expect(result.user.email).toBe(mockUser.email);
       expect(usersService.create).toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalledWith('welcome-email', {
+        email: mockUser.email,
+        username: mockUser.username,
+      });
     });
 
     it('should throw ConfictException if email exists', async () => {
