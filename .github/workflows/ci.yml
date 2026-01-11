@@ -15,7 +15,7 @@ jobs:
         image: postgres:14.1-alpine
         env: 
           POSTGRES_USER: HoneyVanya
-          POSGRES_PASSWORD: 2kkckw63
+          POSTGRES_PASSWORD: 2kkckw63
           POSTGRES_DB: taskmanager_nest
         ports: 
           - 5432:5432
