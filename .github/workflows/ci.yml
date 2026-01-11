@@ -51,12 +51,17 @@ jobs:
       run: npm run build
 
     - name: 🧪 Run Unit Tests
-      run: npm run test
+      env: 
+        DATABASE_URL: postgres://HoneyVanya:2kkckw63@localhost:5432/taskmanager_nest
+        JWT_ACCESS_SECRET: test_secret 
+        JWT_REFRESH_SECRET: test_refresh_secret
+      run: 
+        npx prisma db push --accept-data-loss
+        npm run test
 
     - name: 🚀 Run E2E Tests
       env:
         DATABASE_URL: postgres://HoneyVanya:2kkckw63@localhost:5432/taskmanager_nest
-        # Note: In GitHub Actions, 'localhost' maps to the service container
         REDIS_URL: redis://localhost:6379
         JWT_ACCESS_SECRET: test_secret
         JWT_REFRESH_SECRET: test_refresh_secret
