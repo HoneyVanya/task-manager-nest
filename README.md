@@ -190,8 +190,6 @@ This validates that the application layer is **transport-agnostic**.
 
 ## ⚙️ Environment Variables
 
-## ⚙️ Environment Variables
-
 Configuration follows the **12-Factor App** methodology.
 
 | Variable               | Purpose                    | Example                                    |
