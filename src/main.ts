@@ -48,7 +48,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Task Manager API')
-    .setDescription('Task Manager API with DDD and Microservices')
+    .setDescription('Real-time task management with REST, gRPC, and Redis')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

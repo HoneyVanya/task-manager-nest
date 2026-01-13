@@ -165,39 +165,47 @@ Both REST and gRPC expose the same application services.
 This validates that the application layer is **transport-agnostic**.
 
 ```text
-src/
-├── tasks/
-│ ├── domain/
-│ │ ├── task.entity.ts
-│ │ └── task.repository.ts
-│ ├── application/
-│ │ └── tasks.service.ts
-│ ├── infrastructure/
-│ │ ├── persistence/
-│ │ │ └── prisma-task.repository.ts
-│ │ ├── presentation/
-│ │ │ ├── tasks.controller.ts
-│ │ │ └── tasks.gateway.ts
-├── common/
-│ ├── interceptors/
-│ ├── filters/
-│ └── decorators/
-├── prisma/
-│ └── schema.prisma
-└── main.ts
+.
+├── prisma/                         <-- DB Schema & Migrations (Outside src)
+│   └── schema.prisma
+├── proto/                          <-- gRPC Definitions
+│   └── tasks.proto
+├── src/
+│   ├── tasks/
+│   │   ├── domain/                 <-- Pure Business Logic
+│   │   │   ├── task.entity.ts
+│   │   │   └── task.repository.ts
+│   │   ├── application/            <-- Service Orchestration
+│   │   │   └── tasks.service.ts
+│   │   └── infrastructure/         <-- Framework Implementations
+│   │       ├── persistence/
+│   │       │   └── prisma-task.repository.ts
+│   │       ├── presentation/
+│   │       │   ├── tasks.controller.ts
+│   │       │   └── tasks.gateway.ts
+│   ├── common/
+│   └── main.ts
+└── docker-compose.yml
 ```
+
+## ⚙️ Environment Variables
 
 ## ⚙️ Environment Variables
 
 Configuration follows the **12-Factor App** methodology.
 
-| Variable            | Purpose               | Example                                    |
-| :------------------ | :-------------------- | :----------------------------------------- |
-| `DATABASE_URL`      | PostgreSQL connection | `postgresql://user:pass@localhost:5432/db` |
-| `REDIS_URL`         | Redis connection      | `redis://localhost:6379`                   |
-| `JWT_ACCESS_SECRET` | Auth Signing Key      | `secret_key`                               |
-| `PORT`              | HTTP port             | `3000`                                     |
-| `GRPC_URL`          | gRPC address          | `localhost:50051`                          |
+| Variable               | Purpose                    | Example                                    |
+| :--------------------- | :------------------------- | :----------------------------------------- |
+| `DATABASE_URL`         | PostgreSQL connection      | `postgresql://user:pass@localhost:5432/db` |
+| `REDIS_URL`            | Redis connection           | `redis://localhost:6379`                   |
+| `PORT`                 | HTTP port                  | `3000`                                     |
+| `GRPC_URL`             | gRPC address               | `localhost:50051`                          |
+| `JWT_ACCESS_SECRET`    | JWT signing key            | `secret_key`                               |
+| `JWT_REFRESH_SECRET`   | Refresh token key          | `refresh_secret`                           |
+| `GOOGLE_CLIENT_ID`     | Google OAuth ID            | `client_id`                                |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Secret        | `client_secret`                            |
+| `GOOGLE_CALLBACK_URL`  | Google Redirect URL        | `http://localhost:3000/...`                |
+| `FRONTEND_URL`         | CORS Origin (Frontend App) | `http://localhost:5173`                    |
 
 ---
 
@@ -211,7 +219,7 @@ Configuration follows the **12-Factor App** methodology.
 ### 2. Installation
 
 ```bash
-git clone [https://github.com/HoneyVanya/task-manager-nest.git](https://github.com/HoneyVanya/task-manager-nest.git)
+git clone https://github.com/HoneyVanya/task-manager-nest.git
 cd task-manager-nest
 npm install
 ```
@@ -261,7 +269,7 @@ npm run test:e2e
 Swagger UI (development only):
 
 ```bash
-http://localhost:3000/api
+http://localhost:3000/docs
 ```
 
 ### gRPC
@@ -276,7 +284,6 @@ proto/tasks.proto
 
 ## 🔮 Future Improvements
 
-- OpenTelemetry tracing for distributed debugging.
-- Circuit Breakers for external service calls.
-- Frontend implementation (React/Vue).
-- CI/CD Pipeline (GitHub Actions).
+- **OpenTelemetry:** Tracing for distributed debugging.
+- **Circuit Breakers:** Handling failures in external service calls.
+- **Frontend Implementation:** A visual UI using React/Vue (Coming Next!).
