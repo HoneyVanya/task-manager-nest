@@ -9,11 +9,18 @@ It supports **REST** and **gRPC** as parallel transport layers, implements **Opt
 
 ## 🛡 Build Status & Quality
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/HoneyVanya/task-manager-nest/ci.yml?style=flat-square)](https://github.com/HoneyVanya/task-manager-nest/actions)
-[![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green?style=flat-square)](https://nodejs.org/)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/HoneyVanya/task-manager-nest/ci.yml?style=flat-square&logo=github)](https://github.com/HoneyVanya/task-manager-nest/actions)
+[![codecov](https://codecov.io/gh/HoneyVanya/task-manager-nest/graph/badge.svg?token=YOUR_TOKEN_HERE)](https://codecov.io/gh/HoneyVanya/task-manager-nest)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-[![Docker](https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker)](Dockerfile)
-[![Redis](https://img.shields.io/badge/redis-caching%20%26%20queues-red?style=flat-square&logo=redis)](https://redis.io/)
+
+[![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=flat-square&logo=Prisma&logoColor=white)](https://www.prisma.io/)
+
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat-square&logo=docker&logoColor=white)](Dockerfile)
+[![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=flat-square&logo=redis&logoColor=white)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/postgres-%23316192.svg?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
 ---
 
