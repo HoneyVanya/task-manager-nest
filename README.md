@@ -36,6 +36,15 @@ The project focuses on solving **real-world backend problems** such as concurren
 
 ---
 
+## 🧭 How to Navigate This Repository
+
+If you are reviewing this codebase:
+
+1. Start with `main.ts` to understand application bootstrap
+2. Review `tasks/domain` for business rules
+3. Inspect `tasks/application` for use cases
+4. Look at `tasks/infrastructure` last for technical details
+
 ## 🏗 Architectural Overview
 
 The system is structured using **Hexagonal (Clean) Architecture**, ensuring that business rules remain isolated from frameworks, databases, and transport protocols.
