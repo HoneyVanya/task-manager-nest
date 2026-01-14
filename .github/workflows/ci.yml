@@ -57,7 +57,13 @@ jobs:
         JWT_REFRESH_SECRET: test_refresh_secret
       run: |
         npx prisma migrate deploy
-        npm run test
+        npm run test -- --coverage
+    
+    - name: ☔ Upload Coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with: 
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: HoneyVanya/task-manager-nest
 
     - name: 🚀 Run E2E Tests
       env:
