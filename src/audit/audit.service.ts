@@ -12,9 +12,9 @@ export class AuditService {
     action: string,
     entityType: string,
     entityId: string,
-    details?: any,
+    details?: Record<string, any>,
   ) {
-    this.prisma.auditLog
+    await this.prisma.auditLog
       .create({
         data: {
           userId,
@@ -24,8 +24,12 @@ export class AuditService {
           details: details ?? {},
         },
       })
-      .catch((err) => {
-        this.logger.error(`❌ Failed to create audit log: ${err.message}`);
+      .catch((err: unknown) => {
+        if (err instanceof Error) {
+          this.logger.error(`❌ Failed to create audit log: ${err.message}`);
+        } else {
+          this.logger.error('❌ Failed to create audit log: Unknown error');
+        }
       });
   }
 }

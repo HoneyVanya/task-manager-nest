@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksGateway } from './tasks.gateway';
+import { Server, Socket } from 'socket.io';
 
 describe('TasksGateway', () => {
   let gateway: TasksGateway;
-  let mockServer: any;
+  let mockServer: { to: jest.Mock; emit: jest.Mock };
 
   beforeEach(async () => {
     mockServer = {
@@ -17,7 +18,7 @@ describe('TasksGateway', () => {
 
     gateway = module.get<TasksGateway>(TasksGateway);
 
-    gateway.server = mockServer;
+    gateway.server = mockServer as unknown as Server;
   });
 
   it('should be defined', () => {
@@ -25,14 +26,17 @@ describe('TasksGateway', () => {
   });
 
   describe('handleJoinBoard', () => {
-    it('should join the correct socket room', () => {
+    it('should join the correct socket room', async () => {
       const mockSocket = {
         id: 'socket-123',
-        join: jest.fn(),
-      } as any;
+        join: jest.fn().mockResolvedValue(undefined),
+      };
 
       const boardId = 'board-456';
-      const result = gateway.handleJoinBoard(boardId, mockSocket);
+      const result = await gateway.handleJoinBoard(
+        boardId,
+        mockSocket as unknown as Socket,
+      );
 
       expect(mockSocket.join).toHaveBeenCalledWith(`board:${boardId}`);
       expect(result.event).toBe('joined');

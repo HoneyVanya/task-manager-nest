@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
 import { TasksGateway } from '../infrastructure/gateway/tasks.gateway';
 import { Task } from '../domain/task.entity';
+import { TaskRepository } from '../domain/task.repository';
+import { BoardRepository } from '../domain/board.repository';
 import {
   NotFoundException,
   ConflictException,
@@ -9,31 +11,42 @@ import {
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { GENERAL_BOARD_ID } from 'src/common/constants';
+import { GetTasksFilterDto } from '../dto/get-tasks.dto';
+import { Board } from '../domain/board.entity';
+
+interface MockRedisClient {
+  get: jest.Mock;
+  set: jest.Mock;
+  del: jest.Mock;
+  keys: jest.Mock;
+}
 
 describe('TasksService', () => {
   let service: TasksService;
-  let taskRepo: any;
-  let boardRepo: any;
-  let gateway: any;
-  let mockRedis: any;
-
-  const mockTaskRepo = {
-    save: jest.fn(),
-    findById: jest.fn(),
-    findAllByBoard: jest.fn(),
-    delete: jest.fn(),
-  };
-
-  const mockBoardRepo = {
-    findPrivateByOwner: jest.fn(),
-  };
-
-  const mockGateway = {
-    notifyTaskUpdated: jest.fn(),
-  };
+  let taskRepo: jest.Mocked<TaskRepository>;
+  let boardRepo: jest.Mocked<BoardRepository>;
+  let gateway: jest.Mocked<TasksGateway>;
+  let mockRedis: MockRedisClient;
 
   beforeEach(async () => {
-    mockRedis = {
+    const mockTaskRepoProvider = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findAllByBoard: jest.fn(),
+      findAllByAuthor: jest.fn(),
+      delete: jest.fn(),
+    };
+
+    const mockBoardRepoProvider = {
+      save: jest.fn(),
+      findPrivateByOwner: jest.fn(),
+    };
+
+    const mockGatewayProvider = {
+      notifyTaskUpdated: jest.fn(),
+    };
+
+    const mockRedisProvider = {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
@@ -43,17 +56,19 @@ describe('TasksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
-        { provide: 'TaskRepository', useValue: mockTaskRepo },
-        { provide: 'BoardRepository', useValue: mockBoardRepo },
-        { provide: TasksGateway, useValue: mockGateway },
-        { provide: 'REDIS_CLIENT', useValue: mockRedis },
+        { provide: 'TaskRepository', useValue: mockTaskRepoProvider },
+        { provide: 'BoardRepository', useValue: mockBoardRepoProvider },
+        { provide: TasksGateway, useValue: mockGatewayProvider },
+        { provide: 'REDIS_CLIENT', useValue: mockRedisProvider },
       ],
     }).compile();
 
     service = module.get<TasksService>(TasksService);
+
     taskRepo = module.get('TaskRepository');
     boardRepo = module.get('BoardRepository');
-    gateway = module.get<TasksGateway>(TasksGateway);
+    gateway = module.get(TasksGateway);
+    mockRedis = module.get('REDIS_CLIENT');
 
     jest.clearAllMocks();
   });
@@ -78,7 +93,9 @@ describe('TasksService', () => {
       );
 
       taskRepo.findById.mockResolvedValue(task);
-      boardRepo.findPrivateByOwner.mockResolvedValue({ id: privateBoardId });
+      boardRepo.findPrivateByOwner.mockResolvedValue({
+        id: privateBoardId,
+      } as unknown as Board);
 
       const result = await service.acceptTask(taskId, userId);
 
@@ -86,7 +103,9 @@ describe('TasksService', () => {
       expect(result.assigneeId).toEqual(userId);
       expect(result.version).toEqual(2);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(taskRepo.save).toHaveBeenCalledWith(task);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(gateway.notifyTaskUpdated).toHaveBeenCalledTimes(2);
 
       expect(mockRedis.keys).toHaveBeenCalled();
@@ -124,11 +143,12 @@ describe('TasksService', () => {
     it('should create task on General Board if no boardId provided (Default)', async () => {
       const dto = { title: 'New Task', boardId: GENERAL_BOARD_ID };
 
-      taskRepo.save.mockImplementation(async (t) => t);
+      taskRepo.save.mockImplementation(() => Promise.resolve());
 
       const result = await service.create(dto, 'admin-id');
 
       expect(result.boardId).toEqual(GENERAL_BOARD_ID);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(gateway.notifyTaskUpdated).toHaveBeenCalledWith(
         GENERAL_BOARD_ID,
         result,
@@ -139,12 +159,13 @@ describe('TasksService', () => {
 
   describe('findGeneralTasks', () => {
     it('should return tasks from repository', async () => {
-      const mockResult = [{ id: '1' }];
+      const mockResult = [{ id: '1' }] as Task[];
       taskRepo.findAllByBoard.mockResolvedValue(mockResult);
       mockRedis.get.mockResolvedValue(null);
 
       const result = await service.findGeneralTasks({ page: 1, limit: 10 });
       expect(result).toEqual(mockResult);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(taskRepo.findAllByBoard).toHaveBeenCalledWith(
         GENERAL_BOARD_ID,
         0,
@@ -159,6 +180,7 @@ describe('TasksService', () => {
       const result = await service.findGeneralTasks({ page: 1, limit: 10 });
 
       expect(result).toEqual(cachedTasks);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(taskRepo.findAllByBoard).not.toHaveBeenCalled();
     });
   });
@@ -166,9 +188,11 @@ describe('TasksService', () => {
   describe('findPrivateTasks', () => {
     it('should allow User to see their own tasks', async () => {
       const userId = 'my-id';
-      const mockResult = [{ id: 1 }];
+      const mockResult = [{ id: '1' }] as Task[];
       taskRepo.findAllByBoard.mockResolvedValue(mockResult);
-      boardRepo.findPrivateByOwner.mockResolvedValue({ id: 'my-board' });
+      boardRepo.findPrivateByOwner.mockResolvedValue({
+        id: 'my-board',
+      } as unknown as Board);
 
       const result = await service.findPrivateTasks(
         userId,
@@ -177,7 +201,9 @@ describe('TasksService', () => {
         { page: 1, limit: 10 },
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(boardRepo.findPrivateByOwner).toHaveBeenCalledWith(userId);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(taskRepo.findAllByBoard).toHaveBeenCalledWith(
         'my-board',
         expect.any(Number),
@@ -188,7 +214,12 @@ describe('TasksService', () => {
 
     it('should throw Forbidden if User tries to see another user tasks', async () => {
       await expect(
-        service.findPrivateTasks('my-id', Role.USER, 'other-id', {} as any),
+        service.findPrivateTasks(
+          'my-id',
+          Role.USER,
+          'other-id',
+          new GetTasksFilterDto(),
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -196,17 +227,19 @@ describe('TasksService', () => {
       const targetId = 'target-id';
       boardRepo.findPrivateByOwner.mockResolvedValue({
         id: 'target-board',
-      });
+      } as unknown as Board);
       taskRepo.findAllByBoard.mockResolvedValue([]);
 
       await service.findPrivateTasks(
         'admin-id',
         Role.ADMIN,
         targetId,
-        {} as any,
+        new GetTasksFilterDto(),
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(boardRepo.findPrivateByOwner).toHaveBeenCalledWith(targetId);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(taskRepo.findAllByBoard).toHaveBeenCalled();
     });
   });

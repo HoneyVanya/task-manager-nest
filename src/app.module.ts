@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TasksModule } from './tasks/tasks.module';
@@ -12,11 +12,20 @@ import { UsersModule } from './users/users.module';
 import * as Joi from 'joi';
 import { HealthModule } from './health/health.module';
 import { BullModule } from '@nestjs/bullmq';
-import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { RedisModule } from './redis/redis.module';
+import { RedisThrottlerStorage } from './common/adapters/redis-throttler.storage';
+import type { RedisClientType } from 'redis';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import type { IncomingMessage } from 'http';
+
+interface PinoRequest extends IncomingMessage {
+  raw: {
+    body: unknown;
+  };
+  body: unknown;
+}
 
 @Module({
   imports: [
@@ -59,39 +68,37 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
         genReqId: (req) => req.headers['x-request-id'] || crypto.randomUUID(),
         serializers: {
           req: (req) => {
-            req.body = req.raw.body;
-            return req;
+            const pinoReq = req as PinoRequest;
+            if (pinoReq.raw && pinoReq.raw.body) {
+              pinoReq.body = pinoReq.raw.body;
+            }
+            return pinoReq;
           },
         },
       },
     }),
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      imports: [RedisModule],
+      inject: ['REDIS_CLIENT'],
+      useFactory: (redis: RedisClientType) => ({
         throttlers: [
           {
             ttl: 60000,
             limit: 10,
           },
         ],
-        storage: new ThrottlerStorageRedisService({
-          host: 'localhost',
-          port: 6379,
-        }),
+        storage: new RedisThrottlerStorage(redis),
       }),
     }),
     UsersModule,
     HealthModule,
     BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: () => ({
         connection: {
           host: 'localhost',
           port: 6379,
         },
       }),
-      inject: [ConfigService],
     }),
     AuditModule,
   ],

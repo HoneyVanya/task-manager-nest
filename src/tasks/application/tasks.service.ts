@@ -45,7 +45,7 @@ export class TasksService {
 
     if (cachedString) {
       console.log(`✅ [Cache HIT] Returning cached data`);
-      return JSON.parse(cachedString);
+      return JSON.parse(cachedString) as Task[];
     }
 
     console.log(`⚠️ [Cache MISS] Fetching from DB...`);

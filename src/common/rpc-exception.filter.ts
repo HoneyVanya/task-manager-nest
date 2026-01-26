@@ -1,7 +1,6 @@
 import {
   Catch,
   RpcExceptionFilter,
-  ArgumentsHost,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -11,14 +10,28 @@ import * as grpc from '@grpc/grpc-js';
 
 @Catch(HttpException)
 export class GrpcExceptionFilter implements RpcExceptionFilter<HttpException> {
-  catch(exception: HttpException, host: ArgumentsHost): Observable<any> {
+  catch(exception: HttpException): Observable<any> {
     const status = exception.getStatus();
     const response = exception.getResponse();
-    const message = (response as any).message || exception.message;
+
+    let message = exception.message;
+
+    if (
+      typeof response === 'object' &&
+      response !== null &&
+      'message' in response
+    ) {
+      const msg = (response as { message: unknown }).message;
+      if (typeof msg === 'string') {
+        message = msg;
+      } else if (Array.isArray(msg)) {
+        message = msg.join(', ');
+      }
+    }
 
     let code = grpc.status.UNKNOWN;
 
-    switch (status) {
+    switch (status as HttpStatus) {
       case HttpStatus.NOT_FOUND:
         code = grpc.status.NOT_FOUND;
         break;

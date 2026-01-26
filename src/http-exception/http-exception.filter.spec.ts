@@ -1,10 +1,15 @@
 import { HttpExceptionFilter } from './http-exception.filter';
 import { HttpException, ArgumentsHost, HttpStatus } from '@nestjs/common';
 
+interface MockResponse {
+  status: jest.Mock;
+  json: jest.Mock;
+}
+
 describe('HttpExceptionFilter', () => {
   let filter: HttpExceptionFilter;
   let mockArgumentsHost: any;
-  let mockResponse: any;
+  let mockResponse: MockResponse;
 
   beforeEach(() => {
     filter = new HttpExceptionFilter();

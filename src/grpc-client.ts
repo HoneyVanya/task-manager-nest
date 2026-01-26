@@ -1,10 +1,25 @@
 import { ClientsModule, Transport, ClientGrpc } from '@nestjs/microservices';
 import { join } from 'path';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import { Test, TestingModule } from '@nestjs/testing';
 
+interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  authorId: string;
+}
+
+interface TaskList {
+  tasks: Task[];
+}
+
 interface ITaskService {
-  findAll(data: { userId: string; page: number; limit: number }): any;
+  findAll(data: {
+    userId: string;
+    page: number;
+    limit: number;
+  }): Observable<TaskList>;
 }
 
 async function run() {
@@ -50,4 +65,7 @@ async function run() {
   await module.close();
 }
 
-run();
+run().catch((err) => {
+  console.error('Error during gRPC-client run:', err);
+  process.exit(1);
+});

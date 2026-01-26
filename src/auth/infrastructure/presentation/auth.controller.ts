@@ -15,6 +15,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
+import { User } from 'src/users/domain/user.entity';
 
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -46,8 +47,8 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const user = req.user;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const user = req.user as User;
     const { accessToken, refreshToken } =
       await this.authService.generateTokens(user);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');

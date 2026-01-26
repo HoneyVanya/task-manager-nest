@@ -107,7 +107,7 @@ export class AuthService {
       const tokens = await this.generateTokens(user);
 
       return tokens;
-    } catch (error: any) {
+    } catch {
       throw new ForbiddenException('Invalid Refresh Secret');
     }
   }

@@ -23,7 +23,9 @@ const mockBoardRepository = {
 };
 
 const mockTransactionManager = {
-  run: jest.fn((callback) => callback(mockPrismaService)),
+  run: jest.fn((callback: (tx: unknown) => Promise<unknown>) =>
+    callback(mockPrismaService),
+  ),
 };
 
 describe('UsersService', () => {

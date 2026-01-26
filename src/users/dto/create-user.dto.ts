@@ -9,13 +9,17 @@ import { Transform } from 'class-transformer';
 
 export class CreateUserDto {
   @IsEmail({}, { message: 'Invalid email format' })
-  @Transform(({ value }) => value?.trim().toLowerCase())
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   email: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(3, { message: 'Username must be at least 3 characters long' })
-  @Transform(({ value }) => value?.trim())
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   username: string;
 
   @IsString()

@@ -30,21 +30,21 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('joinBoard')
-  handleJoinBoard(
+  async handleJoinBoard(
     @MessageBody() boardId: string,
     @ConnectedSocket() client: Socket,
   ) {
-    client.join(`board:${boardId}`);
+    await client.join(`board:${boardId}`);
     this.logger.log(`Client ${client.id} joined board:${boardId}`);
     return { event: 'joined', boardId };
   }
 
   @SubscribeMessage('leaveBoard')
-  handleLeaveBoard(
+  async handleLeaveBoard(
     @MessageBody() boardId: string,
     @ConnectedSocket() client: Socket,
   ) {
-    client.leave(`board:${boardId}`);
+    await client.leave(`board:${boardId}`);
     this.logger.log(`Client ${client.id} left board:${boardId}`);
   }
 

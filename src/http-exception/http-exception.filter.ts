@@ -8,6 +8,11 @@ import {
 import { Request, Response } from 'express';
 import { Logger } from '@nestjs/common';
 
+interface ErrorResponseObject {
+  message?: string | string[];
+  error?: string;
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -31,6 +36,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : { message: 'Internal Server Error' };
 
+    let message: string | string[] = 'An unexpected error occured';
+
+    if (typeof errorResponse === 'string') {
+      message = errorResponse;
+    } else if (typeof errorResponse === 'object' && errorResponse !== null) {
+      const body = errorResponse as ErrorResponseObject;
+      message = body.message || body.error || exception.message || message;
+    } else {
+      message = exception.message || message;
+    }
     this.logger.error(
       `${request.method} ${request.url} - Status ${status}`,
       exception.stack,
@@ -41,11 +56,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
-      message:
-        (errorResponse as any).message ||
-        (errorResponse as any).error ||
-        exception.message ||
-        'An unexpected error occured',
+      message,
     });
   }
 }

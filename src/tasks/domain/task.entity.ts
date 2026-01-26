@@ -31,6 +31,7 @@ export class Task {
   }
 
   accept(newBoardId: string, newAssigneeId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (this as any).boardId = newBoardId;
     this.assigneeId = newAssigneeId;
     this.version++;

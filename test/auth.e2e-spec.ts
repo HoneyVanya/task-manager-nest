@@ -3,10 +3,12 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from 'prisma/prisma.service';
+import { Server } from 'http';
 
 describe('Auth System (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let httpServer: Server;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -18,9 +20,9 @@ describe('Auth System (e2e)', () => {
       new ValidationPipe({ transform: true, whitelist: true }),
     );
     await app.init();
+    httpServer = app.getHttpServer() as Server;
 
     prisma = app.get<PrismaService>(PrismaService);
-    // Ensure clean state
     await prisma.user.deleteMany();
   });
 
@@ -29,7 +31,7 @@ describe('Auth System (e2e)', () => {
   });
 
   it('/auth/register (POST) - Register with valid data', () => {
-    return request(app.getHttpServer())
+    return request(httpServer)
       .post('/auth/register')
       .send({
         email: 'unique-auth-test@example.com',

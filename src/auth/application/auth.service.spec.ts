@@ -10,11 +10,20 @@ import { getQueueToken } from '@nestjs/bullmq';
 
 jest.mock('bcryptjs');
 
+interface MockUsersService {
+  create: jest.Mock;
+  findByEmail: jest.Mock;
+  findOne: jest.Mock;
+}
+
+interface MockQueue {
+  add: jest.Mock;
+}
+
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: any;
-  let jwtService: any;
-  let mockQueue: any;
+  let usersService: MockUsersService;
+  let mockQueue: MockQueue;
 
   const mockUser = {
     id: 'user-uuid',
@@ -55,8 +64,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
-    jwtService = module.get<JwtService>(JwtService);
+    usersService = module.get(UsersService);
   });
 
   describe('register', () => {
